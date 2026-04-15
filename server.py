@@ -30,7 +30,7 @@ def video_info():
         return jsonify({"error": "URL is required"}), 400
 
     try:
-        ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+        ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True, "extractor_args": {"youtube": {"player_client": ["tv"]}}}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
@@ -110,6 +110,7 @@ def _process_video(job_id, url):
             "progress_hooks": [_progress_hook(job_id)],
             "quiet": True,
             "no_warnings": True,
+            "extractor_args": {"youtube": {"player_client": ["tv"]}},
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
