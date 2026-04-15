@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube → Google Drive</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #f1f1f1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 640px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        h1 span.yt { color: #ff0000; }
+        h1 span.arrow { color: #666; margin: 0 8px; }
+        h1 span.drive { color: #4285f4; }
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid #333;
+            border-radius: 12px;
+            background: #1a1a1a;
+            color: #f1f1f1;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus { border-color: #ff0000; }
+        .input-group input::placeholder { color: #666; }
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: #ff0000;
+            color: white;
+        }
+        .btn-primary:hover { background: #cc0000; }
+        .btn-primary:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .video-preview {
+            display: none;
+            background: #1a1a1a;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            border: 1px solid #333;
+        }
+        .video-preview.show { display: block; }
+        .video-preview img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+        .video-info {
+            padding: 16px;
+        }
+        .video-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .video-meta {
+            display: flex;
+            gap: 16px;
+            color: #aaa;
+            font-size: 13px;
+        }
+        .video-meta span { display: flex; align-items: center; gap: 4px; }
+
+        .progress-section {
+            display: none;
+            margin-bottom: 24px;
+        }
+        .progress-section.show { display: block; }
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff4444);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        .progress-message {
+            font-size: 14px;
+            color: #aaa;
+            text-align: center;
+        }
+
+        .result-card {
+            display: none;
+            background: #1a2e1a;
+            border: 1px solid #2d5a2d;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .result-card.show { display: block; }
+        .result-card.error {
+            background: #2e1a1a;
+            border-color: #5a2d2d;
+        }
+        .result-icon { font-size: 48px; margin-bottom: 12px; }
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .result-detail {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 16px;
+        }
+        .btn-drive {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: #4285f4;
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn-drive:hover { background: #3367d6; }
+        .btn-copy {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: #333;
+            color: #f1f1f1;
+            border: 1px solid #555;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.2s;
+        }
+        .btn-copy:hover { background: #444; }
+
+        .history {
+            margin-top: 32px;
+        }
+        .history h3 {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #222;
+        }
+        .history-item .name {
+            font-size: 14px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 12px;
+        }
+        .history-item .size { font-size: 12px; color: #888; margin-right: 12px; }
+        .history-item a {
+            font-size: 13px;
+            color: #4285f4;
+            text-decoration: none;
+        }
+        .history-item a:hover { text-decoration: underline; }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #666;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span class="yt">YouTube</span>
+            <span class="arrow">&rarr;</span>
+            <span class="drive">Google Drive</span>
+        </h1>
+        <p class="subtitle">Cole o link do video e salve direto no Drive</p>
+
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." autofocus>
+            <button class="btn btn-primary" id="btnDownload" onclick="handleSubmit()">Baixar</button>
+        </div>
+
+        <div class="video-preview" id="videoPreview">
+            <img id="previewThumb" src="" alt="Thumbnail">
+            <div class="video-info">
+                <h3 id="previewTitle"></h3>
+                <div class="video-meta">
+                    <span id="previewUploader"></span>
+                    <span id="previewDuration"></span>
+                    <span id="previewViews"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar-bg">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <p class="progress-message" id="progressMessage">Iniciando...</p>
+        </div>
+
+        <div class="result-card" id="resultCard">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-detail" id="resultDetail"></div>
+            <div id="resultActions"></div>
+        </div>
+
+        <div class="history" id="historySection" style="display:none">
+            <h3>Recentes</h3>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = "";  // same origin
+        let currentJobId = null;
+        let pollInterval = null;
+
+        // Load history from localStorage
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem("yt_drive_history") || "[]");
+            if (history.length === 0) return;
+
+            document.getElementById("historySection").style.display = "block";
+            const list = document.getElementById("historyList");
+            list.innerHTML = history.slice(0, 10).map(h => `
+                <div class="history-item">
+                    <span class="name">${h.name}</span>
+                    <span class="size">${h.size}</span>
+                    <a href="${h.link}" target="_blank">Abrir no Drive</a>
+                </div>
+            `).join("");
+        }
+
+        function saveHistory(name, size, link) {
+            const history = JSON.parse(localStorage.getItem("yt_drive_history") || "[]");
+            history.unshift({ name, size, link, date: new Date().toISOString() });
+            localStorage.setItem("yt_drive_history", JSON.stringify(history.slice(0, 20)));
+            loadHistory();
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return "";
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${String(s).padStart(2, "0")}`;
+        }
+
+        function formatViews(count) {
+            if (!count) return "";
+            if (count >= 1_000_000) return (count / 1_000_000).toFixed(1) + "M views";
+            if (count >= 1_000) return (count / 1_000).toFixed(0) + "K views";
+            return count + " views";
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById("btnDownload");
+            const input = document.getElementById("urlInput");
+            btn.disabled = loading;
+            input.disabled = loading;
+            btn.innerHTML = loading ? '<span class="spinner"></span>Processando...' : "Baixar";
+        }
+
+        function showProgress(show) {
+            document.getElementById("progressSection").classList.toggle("show", show);
+        }
+
+        function updateProgress(percent, message) {
+            document.getElementById("progressBar").style.width = percent + "%";
+            document.getElementById("progressMessage").textContent = message;
+        }
+
+        function showResult(type, title, detail, link) {
+            const card = document.getElementById("resultCard");
+            card.className = "result-card show" + (type === "error" ? " error" : "");
+            document.getElementById("resultIcon").textContent = type === "error" ? "X" : "";
+            document.getElementById("resultTitle").textContent = title;
+            document.getElementById("resultDetail").textContent = detail;
+
+            const actions = document.getElementById("resultActions");
+            if (link) {
+                actions.innerHTML = `
+                    <a href="${link}" target="_blank" class="btn-drive">Abrir no Google Drive</a>
+                    <button class="btn-copy" onclick="copyLink('${link}')">Copiar link</button>
+                `;
+            } else {
+                actions.innerHTML = "";
+            }
+        }
+
+        function copyLink(link) {
+            navigator.clipboard.writeText(link);
+            const btn = document.querySelector(".btn-copy");
+            if (btn) {
+                btn.textContent = "Copiado!";
+                setTimeout(() => { btn.textContent = "Copiar link"; }, 2000);
+            }
+        }
+
+        async function handleSubmit() {
+            const url = document.getElementById("urlInput").value.trim();
+            if (!url) return;
+
+            // Reset state
+            document.getElementById("resultCard").className = "result-card";
+            showProgress(false);
+            setLoading(true);
+
+            try {
+                // Step 1: Get video info
+                const infoResp = await fetch(API + "/api/info", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                });
+                const info = await infoResp.json();
+
+                if (!infoResp.ok) {
+                    showResult("error", "Erro", info.error || "Nao foi possivel obter info do video");
+                    setLoading(false);
+                    return;
+                }
+
+                // Show preview
+                const preview = document.getElementById("videoPreview");
+                document.getElementById("previewThumb").src = info.thumbnail || "";
+                document.getElementById("previewTitle").textContent = info.title || "";
+                document.getElementById("previewUploader").textContent = info.uploader || "";
+                document.getElementById("previewDuration").textContent = formatDuration(info.duration);
+                document.getElementById("previewViews").textContent = formatViews(info.view_count);
+                preview.classList.add("show");
+
+                // Step 2: Start download
+                showProgress(true);
+                updateProgress(5, "Iniciando download...");
+
+                const dlResp = await fetch(API + "/api/download", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                });
+                const dlData = await dlResp.json();
+
+                if (!dlResp.ok) {
+                    showResult("error", "Erro", dlData.error || "Falha ao iniciar download");
+                    showProgress(false);
+                    setLoading(false);
+                    return;
+                }
+
+                // Step 3: Poll for status
+                currentJobId = dlData.job_id;
+                pollInterval = setInterval(() => pollStatus(dlData.job_id), 2000);
+
+            } catch (e) {
+                showResult("error", "Erro de conexao", "Verifique se o servidor esta rodando (python server.py)");
+                showProgress(false);
+                setLoading(false);
+            }
+        }
+
+        async function pollStatus(jobId) {
+            try {
+                const resp = await fetch(API + `/api/status/${jobId}`);
+                const data = await resp.json();
+
+                updateProgress(data.progress || 0, data.message || "Processando...");
+
+                if (data.status === "done") {
+                    clearInterval(pollInterval);
+                    showProgress(false);
+                    setLoading(false);
+                    showResult("success", "Upload concluido!", `${data.fileName} (${data.fileSize})`, data.driveLink);
+                    saveHistory(data.fileName, data.fileSize, data.driveLink);
+                } else if (data.status === "error") {
+                    clearInterval(pollInterval);
+                    showProgress(false);
+                    setLoading(false);
+                    showResult("error", "Erro", data.message);
+                }
+            } catch (e) {
+                // Keep polling on network errors
+            }
+        }
+
+        // Enter key submits
+        document.getElementById("urlInput").addEventListener("keydown", e => {
+            if (e.key === "Enter") handleSubmit();
+        });
+
+        // Load history on page load
+        loadHistory();
+    </script>
+</body>
+</html>
