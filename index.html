@@ -281,7 +281,7 @@
     </div>
 
     <script>
-        const API = "";  // same origin
+        const API = location.hostname === "localhost" ? "" : "http://localhost:5555";
         let currentJobId = null;
         let pollInterval = null;
 
